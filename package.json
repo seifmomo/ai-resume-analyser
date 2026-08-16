@@ -1,0 +1,33 @@
+{
+  "name": "ai-resume-analyser",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^15.3.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "openai": "^4.103.0",
+    "pdf-parse": "^1.1.1",
+    "react-dropzone": "^14.3.8",
+    "lucide-react": "^0.513.0",
+    "clsx": "^2.1.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "@types/node": "^22.15.3",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "tailwindcss": "^4.1.8",
+    "@tailwindcss/postcss": "^4.1.8",
+    "postcss": "^8.5.4",
+    "eslint": "^9.26.0",
+    "eslint-config-next": "^15.3.3",
+    "@eslint/eslintrc": "^3.3.1"
+  }
+}
