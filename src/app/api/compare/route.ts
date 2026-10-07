@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { compareResumes } from "@/lib/openai";
+import { compareResumes, LLMError } from "@/lib/llm";
+
+export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +16,11 @@ export async function POST(request: NextRequest) {
 
     const result = await compareResumes(resumes);
     return NextResponse.json(result);
-  } catch {
+  } catch (error) {
+    if (error instanceof LLMError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    console.error("compare failed:", error);
     return NextResponse.json({ error: "Failed to compare resumes" }, { status: 500 });
   }
 }

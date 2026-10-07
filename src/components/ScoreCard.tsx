@@ -7,8 +7,6 @@ interface ScoreCardProps {
 export default function ScoreCard({ label, score, size = "sm" }: ScoreCardProps) {
   const color =
     score >= 80 ? "text-emerald-400" : score >= 60 ? "text-yellow-400" : "text-red-400";
-  const bgColor =
-    score >= 80 ? "bg-emerald-400" : score >= 60 ? "bg-yellow-400" : "bg-red-400";
   const dim = size === "lg" ? "text-5xl" : "text-3xl";
 
   return (

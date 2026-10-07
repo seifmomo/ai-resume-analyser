@@ -23,7 +23,10 @@ export default function ComparePage() {
           resumes: resumes.map((r) => ({ name: r.fileName, text: r.text })),
         }),
       });
-      if (!res.ok) throw new Error("Comparison failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Comparison failed");
+      }
       setResult(await res.json());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Comparison failed");

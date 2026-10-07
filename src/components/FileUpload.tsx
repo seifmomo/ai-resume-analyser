@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useDropzone } from "react-dropzone";
+import { useDropzone, FileRejection } from "react-dropzone";
 import { ResumeData } from "@/types";
 
 interface FileUploadProps {
@@ -15,8 +15,17 @@ export default function FileUpload({ onUpload, multiple = false, onMultipleUploa
   const [error, setError] = useState<string | null>(null);
 
   const onDrop = useCallback(
-    async (acceptedFiles: File[]) => {
+    async (acceptedFiles: File[], fileRejections: FileRejection[]) => {
       setError(null);
+
+      if (fileRejections.length > 0) {
+        const messages = fileRejections.flatMap((r) => r.errors.map((e) => e.message));
+        const tooLarge = fileRejections.some((r) => r.errors.some((e) => e.code === "file-too-large"));
+        setError(tooLarge ? "Some files exceed the 4MB limit" : messages[0]);
+      }
+
+      if (acceptedFiles.length === 0) return;
+
       setUploading(true);
 
       try {
@@ -57,6 +66,7 @@ export default function FileUpload({ onUpload, multiple = false, onMultipleUploa
     accept: { "application/pdf": [".pdf"] },
     multiple,
     maxFiles: multiple ? 5 : 1,
+    maxSize: 4 * 1024 * 1024,
   });
 
   return (
@@ -77,7 +87,7 @@ export default function FileUpload({ onUpload, multiple = false, onMultipleUploa
         ) : (
           <div>
             <p className="text-gray-300 mb-2">Drag & drop your PDF resume here, or click to browse</p>
-            <p className="text-sm text-gray-500">PDF files up to 10MB {multiple ? "(up to 5 files)" : ""}</p>
+            <p className="text-sm text-gray-500">PDF files up to 4MB {multiple ? "(up to 5 files)" : ""}</p>
           </div>
         )}
       </div>

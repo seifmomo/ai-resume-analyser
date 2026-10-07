@@ -21,7 +21,10 @@ export default function ATSPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: r.text }),
       });
-      if (!res.ok) throw new Error("ATS check failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "ATS check failed");
+      }
       setResult(await res.json());
     } catch (e) {
       setError(e instanceof Error ? e.message : "ATS check failed");

@@ -1,8 +1,9 @@
-import pdfParse from "pdf-parse";
+import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import { ResumeData } from "@/types";
 
 export async function parsePDF(buffer: Buffer, fileName: string): Promise<ResumeData> {
-  const data = await pdfParse(buffer);
+  const bytes = new Uint8Array(buffer);
+  const data = await pdfParse(bytes);
   return {
     id: crypto.randomUUID(),
     fileName,

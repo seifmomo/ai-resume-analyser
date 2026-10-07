@@ -1,6 +1,6 @@
 # AI Resume Analyser
 
-AI-powered resume analysis tool built with Next.js, TypeScript, and OpenAI's GPT-4o. Upload your PDF resume and get instant scoring, feedback, and improvement suggestions.
+AI-powered resume analysis tool built with Next.js, TypeScript, and Groq's free API (GPT-OSS 120B). Upload your PDF resume and get instant scoring, feedback, and improvement suggestions — 100% free to run.
 
 ## Features
 
@@ -14,7 +14,7 @@ AI-powered resume analysis tool built with Next.js, TypeScript, and OpenAI's GPT
 - **Framework:** Next.js 15 (App Router)
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS v4
-- **AI:** OpenAI GPT-4o API
+- **AI:** [Groq](https://console.groq.com) free tier (OpenAI-compatible API, `openai/gpt-oss-120b`)
 - **PDF Parsing:** pdf-parse
 - **File Upload:** react-dropzone
 
@@ -23,7 +23,7 @@ AI-powered resume analysis tool built with Next.js, TypeScript, and OpenAI's GPT
 ### Prerequisites
 
 - Node.js 18+
-- OpenAI API key
+- A free Groq API key — create one at [console.groq.com/keys](https://console.groq.com/keys)
 
 ### Setup
 
@@ -36,7 +36,7 @@ npm install
 Create a `.env.local` file:
 
 ```
-OPENAI_API_KEY=sk-your-key-here
+GROQ_API_KEY=gsk_your_key_here
 ```
 
 Run the dev server:
@@ -46,6 +46,19 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Deploying to Vercel (free)
+
+1. Push the repo to GitHub.
+2. Import it at [vercel.com/new](https://vercel.com/new) and deploy.
+3. In the project's **Settings → Environment Variables**, add `GROQ_API_KEY`.
+4. Redeploy.
+
+Notes for the free tier:
+
+- Uploads are limited to **4MB** (Vercel request body limit).
+- Groq's free plan rate limits (30 req/min, 1,000 req/day per model) are handled gracefully — the app shows a "rate limited, retry shortly" message when hit.
+- Set `GROQ_MODEL` in env vars to override the default model if needed.
 
 ## Project Structure
 
@@ -58,7 +71,7 @@ src/
 │   ├── ats/           # ATS compatibility page
 │   └── compare/       # Multi-resume comparison page
 ├── components/        # FileUpload, ScoreCard
-├── lib/               # PDF parser, OpenAI integration
+├── lib/               # PDF parser, Groq LLM integration
 └── types/             # TypeScript interfaces
 ```
 

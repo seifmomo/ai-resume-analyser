@@ -22,7 +22,10 @@ export default function MatchPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeText: resume.text, jobDescription }),
       });
-      if (!res.ok) throw new Error("Matching failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Matching failed");
+      }
       setResult(await res.json());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Matching failed");

@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import OpenAI, { APIError } from "openai";
 import {
   AnalysisResult,
   MatchResult,
@@ -6,29 +6,101 @@ import {
   ComparisonResult,
 } from "@/types";
 
-function getClient() {
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const BASE_URL = "https://api.groq.com/openai/v1";
+const DEFAULT_MODEL = "openai/gpt-oss-120b";
+
+export class LLMError extends Error {
+  status: number;
+
+  constructor(message: string, status = 503) {
+    super(message);
+    this.name = "LLMError";
+    this.status = status;
+  }
 }
 
-async function callOpenAI(prompt: string): Promise<string> {
+function getClient(): OpenAI {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    throw new LLMError(
+      "GROQ_API_KEY is not configured — get a free key at console.groq.com/keys",
+      503
+    );
+  }
+  return new OpenAI({ apiKey, baseURL: BASE_URL });
+}
+
+function getRetryAfterMs(error: APIError): number | null {
+  const headers = error.headers as unknown;
+  let value: string | null = null;
+
+  if (headers && typeof (headers as Headers).get === "function") {
+    value = (headers as Headers).get("retry-after");
+  } else if (headers && typeof headers === "object") {
+    const raw = (headers as Record<string, unknown>)["retry-after"];
+    if (typeof raw === "string") value = raw;
+  }
+
+  if (!value) return null;
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds < 0) return null;
+  return Math.min(seconds, 15) * 1000;
+}
+
+async function callLLM(prompt: string): Promise<string> {
   const client = getClient();
-  const response = await client.chat.completions.create({
-    model: "gpt-4o",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.7,
-    max_tokens: 4000,
-  });
-  return response.choices[0].message.content || "";
+  const model = process.env.GROQ_MODEL || DEFAULT_MODEL;
+
+  const run = async (): Promise<string> => {
+    const response = await client.chat.completions.create({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+      max_tokens: 3000,
+    });
+    return response.choices[0].message.content || "";
+  };
+
+  try {
+    return await run();
+  } catch (error) {
+    if (error instanceof APIError && error.status === 429) {
+      const delay = getRetryAfterMs(error) ?? 3000;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      try {
+        return await run();
+      } catch (retryError) {
+        if (retryError instanceof APIError && retryError.status === 429) {
+          throw new LLMError(
+            "The AI service is rate limited — please retry in a moment",
+            429
+          );
+        }
+        throw retryError;
+      }
+    }
+    if (error instanceof APIError) {
+      throw new LLMError(
+        `AI service error (${error.status ?? "unknown"}) — please retry`,
+        502
+      );
+    }
+    throw error;
+  }
 }
 
 function parseJSON<T>(text: string): T {
   const jsonMatch = text.match(/```json\s*([\s\S]*?)```/) || text.match(/\{[\s\S]*\}/);
   const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text;
-  return JSON.parse(jsonStr.trim()) as T;
+  try {
+    return JSON.parse(jsonStr.trim()) as T;
+  } catch {
+    throw new LLMError("The AI returned an unexpected format — please retry", 502);
+  }
 }
 
 export async function analyzeResume(resumeText: string): Promise<AnalysisResult> {
-  const prompt = `Analyze this resume thoroughly and provide a detailed JSON assessment. 
+  const prompt = `Analyze this resume thoroughly and provide a detailed JSON assessment.
 
 Resume:
 ${resumeText}
@@ -50,7 +122,7 @@ Return ONLY valid JSON with this exact structure:
   "fullFeedback": "<comprehensive narrative feedback>"
 }`;
 
-  const response = await callOpenAI(prompt);
+  const response = await callLLM(prompt);
   return parseJSON<AnalysisResult>(response);
 }
 
@@ -75,7 +147,7 @@ Return ONLY valid JSON with this exact structure:
   "fullAnalysis": "<detailed narrative analysis of the match>"
 }`;
 
-  const response = await callOpenAI(prompt);
+  const response = await callLLM(prompt);
   return parseJSON<MatchResult>(response);
 }
 
@@ -99,7 +171,7 @@ Return ONLY valid JSON with this exact structure:
   "recommendations": ["<recommendation1>", "<recommendation2>", ...]
 }`;
 
-  const response = await callOpenAI(prompt);
+  const response = await callLLM(prompt);
   return parseJSON<ATSResult>(response);
 }
 
@@ -125,6 +197,6 @@ Return ONLY valid JSON with this exact structure:
   "recommendation": "<overall recommendation comparing the resumes>"
 }`;
 
-  const response = await callOpenAI(prompt);
+  const response = await callLLM(prompt);
   return parseJSON<ComparisonResult>(response);
 }

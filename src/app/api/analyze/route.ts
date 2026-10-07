@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeResume } from "@/lib/openai";
+import { analyzeResume, LLMError } from "@/lib/llm";
+
+export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +13,11 @@ export async function POST(request: NextRequest) {
 
     const result = await analyzeResume(text);
     return NextResponse.json(result);
-  } catch {
+  } catch (error) {
+    if (error instanceof LLMError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    console.error("analyze failed:", error);
     return NextResponse.json({ error: "Failed to analyze resume" }, { status: 500 });
   }
 }
